@@ -19,6 +19,12 @@ variable "env_prefix" {
 variable "my_ip" {
   
 }
+variable "instance_type" {
+  
+}
+variable "public_key_location" {
+  
+}
 resource "aws_vpc" "myapp-vpc" {
     cidr_block = var.vpc_cidr_block
     tags = {
@@ -83,5 +89,28 @@ resource "aws_security_group" "myapp-sg" {
     }
     tags = {
     Name: "${var.env_prefix}-sg"
+  }
+}
+
+data "aws_ami" "latest-amazon-linux-image" {
+    most_recent = true
+    owners = [ "amazon" ]
+}
+
+resource "aws_key_pair" "ssh-key" {
+    key_name = "server-key"
+    public_key = "${file(var.public_key_location)}"
+}
+
+resource "aws_instance" "myapp-server" {
+    ami=data.aws_ami.latest-amazon-linux-image.id
+    instance_type = var.instance_type
+    subnet_id = aws_subnet.myapp-subnet-1.id
+    vpc_security_group_ids = [ aws_security_group.myapp-sg ]
+    availability_zone = var.availability_zone
+    associate_public_ip_address = true
+    key_name = aws_key_pair.ssh-key.key_name
+    tags = {
+    Name: "${var.env_prefix}-server"
   }
 }
